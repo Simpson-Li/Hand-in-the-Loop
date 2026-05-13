@@ -1,6 +1,6 @@
 ---
 layout: ../layouts/Layout.astro
-title: 'Hand-in-the-Loop'
+title: 'Hand-in-the-Loop: Improving Dexterous VLA via Seamless Interventional Correction'
 description: Simple project page template for your research paper, built with Astro and Tailwind CSS
 favicon: logo.png
 thumbnail: screenshot-light.png
@@ -102,7 +102,7 @@ Vision-Language-Action (VLA) models suffers from the accumulation of compounding
 </div>
 <Figure>
   <Image slot="figure" source={overview} altText="hand" class="w-[95%]" />
-  <span slot="caption">The ByteDexter V2 hand with tactile fingertips.</span>
+  <span slot="caption">Overview of HandITL.</span>
 </Figure>
 
 </HighlightedSectionResult>
@@ -113,22 +113,18 @@ Vision-Language-Action (VLA) models suffers from the accumulation of compounding
 ### Intervention Modes
 
 <div class="text-justify">
-During standard autonomous execution, the robot executes the first action of the predicted sequence <LaTeX formula="\mathbf{A}_t^{\pi}" inline />. In our human-in-the-loop setting, the operator can inject a corrective action <LaTeX formula="\mathbf{a}_{t}^{h}" inline /> during the rollout. The final executed command <LaTeX formula="\mathbf{a}_{t}^{exec}" inline /> is a blended output:
-
-<LaTeX formula="\mathbf{a}_{t}^{exec} = \alpha \mathbf{a}_{t}^{\pi} + \beta \mathbf{a}_{t}^{h}" />
-
-where <LaTeX formula="\alpha \in [0, 1]" inline /> denotes the policy weight and <LaTeX formula="\beta \in [0, 1]" inline /> denotes the human authority weight. The details of fusing arm and hand commands are shown in the method illustration. Our method supports two primary intervention modes:
+During standard autonomous execution, the robot executes the first action of the predicted sequence <LaTeX formula="\mathbf{A}_t^{\pi}" inline />. In our human-in-the-loop setting, the operator can inject a corrective action <LaTeX formula="\mathbf{a}_{t}^{h}" inline /> during the rollout. The final executed command <LaTeX formula="\mathbf{a}_{t}^{exec}" inline /> is a blended output:<LaTeX formula="\mathbf{a}_{t}^{exec} = \alpha \mathbf{a}_{t}^{\pi} + \beta \mathbf{a}_{t}^{h}" inline />, where <LaTeX formula="\alpha \in [0, 1]" inline /> denotes the policy weight and <LaTeX formula="\beta \in [0, 1]" inline /> denotes the human authority weight. The details of fusing arm and hand commands are shown in the method illustration. Our method supports two primary intervention modes:
 
 
 • Full Takeover: <LaTeX formula="\alpha \approx 0, \beta = 1" inline />. The robot is primarily controlled by the human, which is crucial for recovering from severe OOD states.
 
-• Copilot Shared Control: The operator injects minimal corrective signals while preserving the base policy's intent. The system allows decoupled authority weights for the arms (<LaTeX formula="\beta_a" inline />) and hands (<LaTeX formula="\beta_h = 1 - \alpha_h" inline />).
+• Copilot Shared Control: The operator injects minimal corrective signals while preserving the base policy's intent. The system allows decoupled authority weights for the arms <LaTeX formula="\beta_a" inline /> and hands <LaTeX formula="\beta_h = 1 - \alpha_h" inline />.
 
 </div>
 
 <Figure>
   <Image slot="figure" source={method} altText="hand" class="w-[95%]" />
-  <span slot="caption">The ByteDexter V2 hand with tactile fingertips.</span>
+  <span slot="caption">Architecture of the seamless interventional method.</span>
 </Figure>
 
 
@@ -140,13 +136,12 @@ Traditional absolute retargeting maps human poses directly to the robot, causing
 
 where superscripts <LaTeX formula="\text{rob}" inline /> and <LaTeX formula="\text{hum}" inline /> denote robot and human states, and <LaTeX formula="\Delta (\cdot) = (\cdot)_t - (\cdot)_{t_0}" inline /> represents the relative motion since the intervention timestamp <LaTeX formula="t_0" inline />. The loss components are defined as follows:
 
-• <strong>Global Shaping (<LaTeX formula="\mathcal{L}_{\text{shape}}" inline />):</strong> Prioritizes overall posture via wrist-to-fingertip keyvectors <LaTeX formula="\mathbf{v}_i" inline />. Here, <LaTeX formula="\Delta \mathbf{v}_{i}^{\text{rob}}(q_t)" inline /> and <LaTeX formula="\Delta \hat{\mathbf{v}}_{i}^{\text{hum}}" inline /> are the relative changes of these vectors on the robot and human hands. The adaptive weight <LaTeX formula="\beta_i(d_i)" inline /> decays via a sigmoid as the absolute human thumb-to-finger distance <LaTeX formula="d_i" inline /> decreases, dominating when the hand is open.
-
-• <strong>Precision Grasping (<LaTeX formula="\mathcal{L}_{\text{grasp}}" inline />):</strong> Captures pinch grasping via thumb-to-fingertip keyvectors <LaTeX formula="\mathbf{u}_j" inline />. The robot's absolute keyvector <LaTeX formula="\mathbf{u}_{j}^{\text{rob}}(q_t)" inline /> tracks the nominal target <LaTeX formula="\hat{\mathbf{u}}_{j}^{\text{tgt}} = \mathbf{u}_{j}^{\text{rob}}(t_0) + \Delta \hat{\mathbf{u}}_{j}^{\text{hum}}" inline />. We introduce a pinch activation factor <LaTeX formula="\alpha_j(d_j) \in [0,1]" inline />. When <LaTeX formula="d_j" inline /> falls below a threshold, <LaTeX formula="\alpha_j(d_j) \to 0" inline /> explicitly drives <LaTeX formula="\mathbf{u}_{j}^{\text{rob}}" inline /> to <LaTeX formula="\mathbf{0}" inline /> (i.e., firm contact). Concurrently, the weight <LaTeX formula="\omega_j(d_j) \propto (1 - \alpha_j)" inline /> sharply increases, ensuring this term dominates during closed grasps.
-
-• <strong>Structural Safety (<LaTeX formula="\mathcal{L}_{\text{safe}}" inline />):</strong> A repulsive barrier preventing self-collisions. <LaTeX formula="D_{mn}(q_t)" inline /> is the absolute physical distance between adjacent PIP/DIP joint pairs <LaTeX formula="(m,n) \in \mathcal{C}" inline />. The penalty <LaTeX formula="\gamma" inline /> activates only when <LaTeX formula="D_{mn}" inline /> falls below the safety margin <LaTeX formula="d_{\text{safe}}" inline />.
-
-• <strong>Temporal Regularization (<LaTeX formula="\mathcal{L}_{\text{reg}}" inline />):</strong> Penalizes the joint displacement <LaTeX formula="(q_t - q_{t-1})" inline />, scaled by <LaTeX formula="\lambda_{\text{reg}}" inline />, to prevent high-frequency jitter.
+<ul class="w-full max-w-none self-stretch list-outside list-disc pl-8 space-y-2 text-left">
+  <li><strong>Global Shaping (<LaTeX formula="\mathcal{L}_{\text{shape}}" inline />):</strong> Prioritizes overall posture via wrist-to-fingertip keyvectors <LaTeX formula="\mathbf{v}_i" inline />. Here, <LaTeX formula="\Delta \mathbf{v}_{i}^{\text{rob}}(q_t)" inline /> and <LaTeX formula="\Delta \hat{\mathbf{v}}_{i}^{\text{hum}}" inline /> are the relative changes of these vectors on the robot and human hands. The adaptive weight <LaTeX formula="\beta_i(d_i)" inline /> decays via a sigmoid as the absolute human thumb-to-finger distance <LaTeX formula="d_i" inline /> decreases, dominating when the hand is open.</li>
+  <li><strong>Precision Grasping (<LaTeX formula="\mathcal{L}_{\text{grasp}}" inline />):</strong> Captures pinch grasping via thumb-to-fingertip keyvectors <LaTeX formula="\mathbf{u}_j" inline />. The robot's absolute keyvector <LaTeX formula="\mathbf{u}_{j}^{\text{rob}}(q_t)" inline /> tracks the nominal target <LaTeX formula="\hat{\mathbf{u}}_{j}^{\text{tgt}} = \mathbf{u}_{j}^{\text{rob}}(t_0) + \Delta \hat{\mathbf{u}}_{j}^{\text{hum}}" inline />. We introduce a pinch activation factor <LaTeX formula="\alpha_j(d_j) \in [0,1]" inline />. When <LaTeX formula="d_j" inline /> falls below a threshold, <LaTeX formula="\alpha_j(d_j) \to 0" inline /> explicitly drives <LaTeX formula="\mathbf{u}_{j}^{\text{rob}}" inline /> to <LaTeX formula="\mathbf{0}" inline /> (i.e., firm contact). Concurrently, the weight <LaTeX formula="\omega_j(d_j) \propto (1 - \alpha_j)" inline /> sharply increases, ensuring this term dominates during closed grasps.</li>
+  <li><strong>Structural Safety (<LaTeX formula="\mathcal{L}_{\text{safe}}" inline />):</strong> A repulsive barrier preventing self-collisions. <LaTeX formula="D_{mn}(q_t)" inline /> is the absolute physical distance between adjacent PIP/DIP joint pairs <LaTeX formula="(m,n) \in \mathcal{C}" inline />. The penalty <LaTeX formula="\gamma" inline /> activates only when <LaTeX formula="D_{mn}" inline /> falls below the safety margin <LaTeX formula="d_{\text{safe}}" inline />.</li>
+  <li><strong>Temporal Regularization (<LaTeX formula="\mathcal{L}_{\text{reg}}" inline />):</strong> Penalizes the joint displacement <LaTeX formula="(q_t - q_{t-1})" inline />, scaled by <LaTeX formula="\lambda_{\text{reg}}" inline />, to prevent high-frequency jitter.</li>
+</ul>
 
 </div>
 
@@ -180,13 +175,13 @@ Crucially, deriving residuals from relative motion ensures that when the operato
 Our experiments consist of three parts: (1) takeover command discontinuity analysis, which measures the abrupt change in dexterous hand commands at the handover moment; (2) post-takeover manipulation evaluation, which tests whether each method preserves sufficient dexterous manipulation capability after takeover; and (3) long-horizon policy evaluation, which examines whether the collected human-correction data improves the performance of a VLA policy on challenging bimanual dexterous manipulation tasks.
 </div>
 
-### Long-Horizon Manipulation Tasks
+### Takeover Command Discontinuity Analysis
 <div class="text-justify">
-We evaluate takeover command discontinuity on the Drill and Bread Clip tasks.
+We evaluate takeover command discontinuity on the Drill and Bread Clip tasks.Operators first establish a stable teleoperation on the tool, switch to rollout mode, and then toggle the takeover mode three times per trial. 
 
 <Figure slot="right">
-  <Image slot="figure" source={jitter} altText="data_pyramid" />
-  <span slot="caption">Data Pyramid of GR-Dexter.</span>
+  <Image slot="figure" source={jitter} altText="data_pyramid" class="w-[80%]" />
+  <span slot="caption">Takeover command discontinuity on the Drill (top) and Bread Clip (bottom) tasks.</span>
 </Figure>
 
 Across 30 attempts per task-method pair, direct teleoperation switching exhibited a high failure rate, frequently dropping the tool or releasing the drill trigger due to abrupt gesture jumps. In contrast, our relative retargeting method seamlessly preserved grasp stability.
@@ -195,30 +190,35 @@ Our method drastically reduces quantitative command mutation at intervention. On
 </div>
 
 ### Post-Takeover Manipulation Capability
-<div class="text-justify">
-</div>
+
 <div class="text-justify">
 We evaluate pure manipulation capability during takeover on the Pick Up and Place the Parts and Pick Up the Drill task. Operators initiated both tasks directly in an active takeover state. If an operator reached their physical workspace limit, they could temporarily disengage, reset their hand posture, and re-engage (recorded as Interventions). 
+
 <Figure>
   <Image slot="figure" source={table} altText="makeup_result" class="w-full" />
-  <span slot="caption">Experiment Settings and Results of Makeup Decluttering.</span>
+  <span slot="caption">Post-takeover manipulation capability on the Pick Up and Place the Parts and Pick Up the Drill tasks. </span>
 </Figure>
+
 <Figure>
-  <Image slot="figure" source={failure_mode} altText="makeup_result" class="w-full" />
-  <span slot="caption">Experiment Settings and Results of Makeup Decluttering.</span>
+  <Image slot="figure" source={failure_mode} altText="makeup_result" class="w-[80%]" />
+  <span slot="caption">Grasping Postures and Failure Modes.</span>
 </Figure>
 
 As shown in the table, on the Pick Up and Place the Parts task, our method achieves the fastest mean time (<LaTeX formula="42.8\,\mathrm{s}" inline />), improving by <LaTeX formula="19.1\%" inline />, and reduces grasp failures (retries) by <LaTeX formula="87.5\%" inline /> compared to Teleop. Furthermore, our method exhibits minimal cross-operator variance (a <LaTeX formula="5.6\,\mathrm{s}" inline /> gap vs. <LaTeX formula="18.0\,\mathrm{s}" inline /> for Teleop), proving its high intuitiveness. As illustrated in the failure analysis, this performance gap stems from the underlying kinematics. Both our Relative method and Teleop utilize optimization algorithms, ensuring accurate thumb-to-finger opposition and collision avoidance. Conversely, the Jacobian and Delta Cmd baselines rely on previous-step differential calculations. They struggle with precise pinching and easily accumulate drift during fast motions, resulting in awkward grasping postures, frequent part drops, and significantly longer completion times (<LaTeX formula="68.0\,\mathrm{s}" inline /> and <LaTeX formula="56.7\,\mathrm{s}" inline />, respectively).
 On the Pick Up the Drill task, our method again demonstrates better overall efficiency. It records the lowest mean completion time (<LaTeX formula="14.4\,\mathrm{s}" inline />), the fewest workspace interventions (<LaTeX formula="11/10" inline />), and maintains better cross-operator time consistency (<LaTeX formula="11.0\,\mathrm{s}" inline /> / <LaTeX formula="17.9\,\mathrm{s}" inline />) compared to the differential baselines. Because our relative retargeting employs a different optimization formulation than the teleoperation, the mapping of fine finger articulation differs slightly. Consequently, without tactile feedback, operators require a brief period of adaptation and postural adjustment to command, which slightly affect the success rate of triggering the button.
 </div>
+</HighlightedSectionResult>
 
+<HighlightedSection>
 ### Long-Horizon Policy Evaluation
 <div class="text-justify">
 </div>
+
 <Figure>
   <Image slot="figure" source={experiment} altText="makeup_result" class="w-full" />
-  <span slot="caption">Experiment Settings and Results of Makeup Decluttering.</span>
+  <span slot="caption">Execution sequences of the three long-horizon bimanual dexterous manipulation tasks.</span>
 </Figure>
+
 <div class="text-justify">
 We collect a 20-hour real-world teleoperation dataset, evenly distributed across three long-horizon tasks. 
 Starting from a pre-trained GR-Dexter policy, we further fine-tune the model on this teleoperation dataset to obtain our base policy.
@@ -226,15 +226,13 @@ We then deploy the base policy on real robots and collect takeover data during r
 We collect correction data under both full-takeover and copilot shared-control modes in an HG-DAgger-style takeover process. 
 For post-training, we compare the following policies:
 
-• **Base**: the policy fine-tuned only on the 20-hour teleoperation dataset (base dataset);
-
-• **Teleop\_old**: continuing to fine-tune the base policy using the base dataset only;
-
-• **Teleop\_new**: fine-tuning the base policy using a 0.5:1 mixture of 1-hour new teleoperation data and base dataset;
-
-• **Copilot**: fine-tuning the base policy using a 0.5:1 mixture of copilot takeover data and base dataset;
-
-• **Full Takeover**: fine-tuning the base policy using a 0.5:1 mixture of full-takeover data and base dataset.
+<ul class="w-full max-w-none self-stretch list-outside list-disc pl-8 space-y-2 text-left">
+  <li><strong>Base</strong>: the policy fine-tuned only on the 20-hour teleoperation dataset (base dataset);</li>
+  <li><strong>Teleop_old</strong>: continuing to fine-tune the base policy using the base dataset only;</li>
+  <li><strong>Teleop_new</strong>: fine-tuning the base policy using a 0.5:1 mixture of 1-hour new teleoperation data and base dataset;</li>
+  <li><strong>Copilot</strong>: fine-tuning the base policy using a 0.5:1 mixture of copilot takeover data and base dataset;</li>
+  <li><strong>Full Takeover</strong>: fine-tuning the base policy using a 0.5:1 mixture of full-takeover data and base dataset.</li>
+</ul>
 
 For a fair comparison, all additional post-training datasets, including new teleoperation, copilot takeover, and full-takeover data, are 1 hour in duration, and all post-training runs use identical training schedules and hyperparameters.
 
@@ -242,18 +240,27 @@ We evaluate all policies on three long-horizon tasks requiring high-precision bi
 
 <Figure>
   <Image slot="figure" source={evaluation} altText="long_horizon" class="w-full" />
-  <span slot="caption">GR-Dexter performs long-horizon tasks.</span>
+  <span slot="caption">Average normalized sub-goal completion scores across three long-horizon tasks.</span>
 </Figure>
 
-As shown in Fig., comparing the five policies reveals three critical insights regarding long-horizon performance:
+Comparing the five policies reveals three critical insights regarding long-horizon performance:
 
-**1) Limited Improvements from Pure Teleoperation**: 
-As shown in Fig., simply increasing pure teleoperation data brings limited and inconsistent gains. Both Teleop_old and Teleop_new show only marginal improvements, and their effects vary across tasks. This suggests that additional off-policy demonstrations do not sufficiently address the rollout states where compounding errors occur, especially in late phases that require precise contact-rich manipulation.
-
-**2) Effectiveness of Intervention Data**: 
-In contrast, policies fine-tuned with intervention data achieve higher average normalized completion scores. Since Copilot and Full Takeover data are collected when the deployed policy actually requires human correction, they provide targeted supervision for recovering from out-of-distribution states. This makes intervention data more effective than standard teleoperation demonstrations for improving long-horizon robustness.
-
-**3) Copilot vs. Full Takeover**: 
-Among the two intervention strategies, Copilot generally yields the strongest overall performance. Unlike Full Takeover, which may introduce larger action deviations during authority switching, Copilot preserves the base policy's ongoing behavior while injecting local corrections. The resulting data stays closer to the policy's rollout distribution, leading to more stable downstream improvements.
+<ol class="w-full max-w-none self-stretch list-outside list-decimal pl-8 space-y-3 text-left">
+  <li><strong>Limited Improvements from Pure Teleoperation:</strong> Simply increasing pure teleoperation data brings limited and inconsistent gains. Both Teleop_old and Teleop_new show only marginal improvements, and their effects vary across tasks. This suggests that additional off-policy demonstrations do not sufficiently address the rollout states where compounding errors occur, especially in late phases that require precise contact-rich manipulation.</li>
+  <li><strong>Effectiveness of Intervention Data:</strong> In contrast, policies fine-tuned with intervention data achieve higher average normalized completion scores. Since Copilot and Full Takeover data are collected when the deployed policy actually requires human correction, they provide targeted supervision for recovering from out-of-distribution states. This makes intervention data more effective than standard teleoperation demonstrations for improving long-horizon robustness.</li>
+  <li><strong>Copilot vs. Full Takeover:</strong> Among the two intervention strategies, Copilot generally yields the strongest overall performance. Unlike Full Takeover, which may introduce larger action deviations during authority switching, Copilot preserves the base policy's ongoing behavior while injecting local corrections. The resulting data stays closer to the policy's rollout distribution, leading to more stable downstream improvements.</li>
+</ol>
 </div>
-</HighlightedSectionResult>
+</HighlightedSection>
+
+## Citation
+<div class="text-sm mt-6 md:max-w-3xl mx-auto w-full" style="font-family: 'EB Garamond', sans-serif; color: #333; line-height: 1.; padding: 10px; background-color: #fffff; margin-bottom: 20px;">
+```bibtex
+  @article{wen2025grdextertechnicalreport,
+    title={GR-Dexter Technical Report},
+    author={Wen, Ruoshi and Chen, Guangzeng and Cui, Zhongren and Du, Min and Gou, Yang and Han, Zhigang and Huang, Liqun and Lei, Mingyu and Li, Yunfei and Li, Zhuohang and Liu, Wenlei and Liu, Yuxiao and Ma, Xiao and Niu, Hao and Ouyang, Yutao and Ren, Zeyu and Shi, Haixin and Xu, Wei and Zhang, Haoxiang and Zhang, Jiajun and Zhang, Xiao and Zheng, Liwei and Zhong, Weiheng and Zhou, Yifei and Zhu, Zhengming and Li, Hang},
+    journal={arXiv preprint arXiv:2512.24210},
+    year={2025}
+  }
+```
+</div>
