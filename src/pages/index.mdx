@@ -1,6 +1,6 @@
 ---
 layout: ../layouts/Layout.astro
-title: 'GR-Dexter Technical Report'
+title: 'Hand-in-the-Loop'
 description: Simple project page template for your research paper, built with Astro and Tailwind CSS
 favicon: logo.png
 thumbnail: screenshot-light.png
@@ -19,32 +19,66 @@ import TwoColumns from "../components/TwoColumns.astro";
 import TwoColumnsVideo from "../components/TwoColumnsVideo.astro";
 import YouTubeVideo from "../components/YouTubeVideo.astro";
 import LaTeX from "../components/LaTeX.astro";
+import PDF from "../components/PDF.astro"
 
 import { ImageComparison } from "../components/ImageComparison.tsx";
 
-import hand from "../assets/hand.png";
-import teleoperation_system from "../assets/teleop_setup.png"
-import teleop_demo from "../assets/teleop_demo.png"
-import data_pyramid from "../assets/data_pyramid.png"
-import makeup_result from "../assets/makeup_result.png"
-import ppa_results from "../assets/ppa_results.png"
-import cross_embodied from "../assets/cross_embodied.png"
-import unseen_ins from "../assets/unseen_ins.png"
-import long_horizon from "../assets/long_horizon.png"
+import overview from "../assets/overview.jpg"
+import failure_mode from "../assets/failure_mode.jpg"
+import jitter from "../assets/jitter_bigfig.jpg"
+import evaluation from "../assets/long_horizon_evaluation.jpg"
+import method from "../assets/method.jpg"
+import experiment from "../assets/experiment.jpg"
+import table from "../assets/table.png"
 
 import background from "../assets/background_1080p.mp4";
-import tech_report from "../assets/tech_report_1080p.mp4";
+import RAL_4K from "../assets/RAL_4K_crf28.mp4";
 
 import CodeBlock from "../components/CodeBlock.astro";
 import Table from "../components/Table.astro";
 
-<VideoHeader
+<Header
   title={frontmatter.title}
-  conference="ByteDance Seed"
+  authors={[
+    { name: "Zhuohang Li", notes: ["1", "2", "3", "*"] },
+    { name: "Liqun Huang", notes: ["3"] },
+    { name: "Wei Xu", notes: ["3"] },
+    { name: "Zhengming Zhu", notes: ["3"] },
+    { name: "Nie Lin", notes: ["3", "4", "*"] },
+    { name: "Xiao Ma", notes: ["3"] },
+    { name: "Xinjun Sheng", notes: ["1", "2", "†"] },
+    { name: "Ruoshi Wen", notes: ["3", "†"] },
+  ]}
+  notes={[
+    {
+      symbol: "1",
+      text: "State Key Laboratory of Mechanical System and Vibration, School of Mechanical Engineering, Shanghai Jiao Tong University",
+    },
+    {
+      symbol: "2",
+      text: "Shanghai Key Laboratory of Intelligent Robotics, Meta Robotics Institute, Shanghai Jiao Tong University, Shanghai 200240, China",
+    },
+    {
+      symbol: "3",
+      text: "ByteDance Seed",
+    },
+    {
+      symbol: "4",
+      text: "The University of Tokyo",
+    },
+    {
+      symbol: "*",
+      text: "Work done at ByteDance Seed",
+    },
+    {
+      symbol: "†",
+      text: "Corresponding authors",
+    },
+  ]}
   links={[
     {
       name: "Paper",
-      url: "https://byte-dexter.github.io/gr-dexter/GR-Dexter%20Tech%20Report.pdf",
+      url: "https://simpson-li.github.io/Hand-in-the-Loop/Hand-in-the-Loop_Seed.pdf",
       icon: "ri:file-pdf-2-line",
     },
     {
@@ -53,163 +87,173 @@ import Table from "../components/Table.astro";
       icon: "academicons:arxiv",
     },
   ]}
-  source={background}
 />
-
+<div>
+    <Video source={RAL_4K} />
+    <h3 style="font-family: 'EB Garamond', sans-serif; font-weight: 600; color: #333; margin-top: 12px; text-align: center; font-size: 18px; letter-spacing: 1px;">
+    </h3>
+</div>
 <HighlightedSectionResult>
 
 ## Abstract
 
 <div class="text-justify">
-Vision–language–action (VLA) models have enabled language-conditioned, long-horizon robot manipulation, but most existing systems are limited to grippers. Scaling VLA policies to bimanual platforms with high-DoF dexterous hands remains challenging due to the expanded action space, frequent hand–object occlusions, and the cost of collecting demonstrations. We present GR-Dexter, an integrated hardware–model–data framework for VLA-based generalist manipulation on a bimanual dexterous-hand robot. Our approach combines a compact high-DoF robotic hand, an intuitive bimanual teleoperation pipeline for collecting demonstrations, and a training recipe that leverages teleoperated robot trajectories together with large-scale vision–language and carefully curated cross-embodiment data. Across real-world evaluations spanning long-horizon everyday manipulation and generalizable pick-and-place, GR-Dexter achieves strong in-domain performance and improved robustness to unseen objects and unseen instructions under out-of-distribution settings. We hope GR-Dexter serves as a practical step toward generalist dexterous-hand robotic manipulation.
+Vision-Language-Action (VLA) models suffers from the accumulation of compounding errors when applied to dexterous manipulation because of high-degree-of-freedom (DoF) action spaces. While Interactive Imitation Learning (IIL) has proven effective for policy refinement through human takeover data, its deployment in dexterous manipulation remains challenging due to ``gesture jumps'' at the moment of intervention. We present Hand-in-the-Loop (HandITL), a seamless interventional method that fuses human correction and policy rollout without bringing gesture jump at takeover moment for bimanual dexterous system. By seamlessly fusing human corrective intent with the model's ongoing actions, HandITL reduces the intervention jitter by 99.8\% and preserves robust manipulation capabilities post-takeover with improving mean finish time by 19.1\% and reducing grasp failures by 87.5\%, compared to teleoperation. Our method is designed to support complex bimanual coordination, tool use, and fine-grained long-horizon tasks. Extensive real-world experiments on dexterous VLA models demonstrate that HandITL significantly outperforms the policy trained with standard teleoperation data by 19\% on average on three long-horizon dexterous tasks, effectively mitigating compounding errors and substantially boosting task scores.
 </div>
-<div>
-    <Video source={tech_report} />
-    <h3 style="font-family: 'EB Garamond', sans-serif; font-weight: 600; color: #333; margin-top: 12px; text-align: center; font-size: 18px; letter-spacing: 1px;">
-    </h3>
-</div>
-
-</HighlightedSectionResult>
-
-<HighlightedSection>
-## Hardware and Control
-
-### ByteDexter Robotic Hand
-
-<div class="text-justify">
-The ByteDexter hand series employ a linkage-driven transmission mechanism for its advantages in force transparency, durability, and ease of maintenance. As an upgraded successor to the V1 hand, the ByteDexter V2 hand introduces an additional thumb DoF, bringing the total to 21 DoFs, while simultaneously reducing the overall hand size (height: 219mm, width: 108mm). Each finger provides four DoFs, and the thumb incorporates five to enable a wider range of oppositional and dexterous motions. The five fingertips of ByteDexter V2 are covered with high-density piezoresistive sensor arrays
-that measures normal forces with fine spatial granularity across the finger tip, finger pad, and fingertip’s lateral surface.
-</div>
-
 <Figure>
-  <Image slot="figure" source={hand} altText="hand" class="w-[95%]" />
+  <Image slot="figure" source={overview} altText="hand" class="w-[95%]" />
   <span slot="caption">The ByteDexter V2 hand with tactile fingertips.</span>
 </Figure>
-</HighlightedSection>
-<HighlightedSectionResult>
-
-### Bimanual System and Control
-<div class="text-justify">
-Real-world robot data are collected via a bimanual teleoperation interface comprising a Meta Quest VR setup for wrist pose tracking, two Manus Metagloves for hand movement capture, and foot pedals for arm control. Two Meta Quest controllers are mounted on the dorsal side of the gloves to ensure reliable wrist-hand coordinated motion tracking. This setup allows teleoperators to simultaneously coordinate two Franka arms for long-horizon manipulation tasks. Human motions are retargeted in realtime to joint position commands, providing kinematically consistent mapping via whole-body control. The system incorporates robust adaptive mechanisms to handle visual tracking loss and prevent hazardous operation. Hand motion retargeting is formulated as a constrained optimization problem aggregating wrist-tip vectors, thumb-tip vectors, collision avoidance, and a regularization term, solved using Sequential Quadratic Programming.  
-</div>
-
-<Figure>
-  <Image slot="figure" source={teleoperation_system} altText="teleoperation_system" class="w-[90%]" />
-  <span slot="caption">Bimanual robotics system for data collection and model rollout.</span>
-</Figure>
 
 </HighlightedSectionResult>
 
 <HighlightedSection>
-## The GR-Dexter Model
+## Method
+
+### Intervention Modes
 
 <div class="text-justify">
-  GR-Dexter follows GR-3 and adopts a Mixture-of-Transformer architecture for a vision-language-action (VLA) model <LaTeX formula="\pi_{\theta}" inline /> of 4B parameters. <LaTeX formula="\pi_\theta(\mathbf a_t\mid l, \mathbf{o}_{t}, \mathbf{s}_{t})" inline /> controls a bi-manual robot with fixed base by generating a <LaTeX formula="k" inline />-length action chunk <LaTeX formula="\mathbf a_t  = a_{t:t+k}" inline /> conditioned on the input language instruction <LaTeX formula="l" inline />, observation <LaTeX formula="\mathbf{o}_{t}" inline />, and robot state <LaTeX formula="\mathbf{s}_{t}" inline />. Specifically, each action <LaTeX formula="a_t" inline /> is a vector consisting of: 1) arm joint actions, 2) arm end-effector poses, 3) hand joint actions, and 4) fingertip positions. 
+During standard autonomous execution, the robot executes the first action of the predicted sequence <LaTeX formula="\mathbf{A}_t^{\pi}" inline />. In our human-in-the-loop setting, the operator can inject a corrective action <LaTeX formula="\mathbf{a}_{t}^{h}" inline /> during the rollout. The final executed command <LaTeX formula="\mathbf{a}_{t}^{exec}" inline /> is a blended output:
+
+<LaTeX formula="\mathbf{a}_{t}^{exec} = \alpha \mathbf{a}_{t}^{\pi} + \beta \mathbf{a}_{t}^{h}" />
+
+where <LaTeX formula="\alpha \in [0, 1]" inline /> denotes the policy weight and <LaTeX formula="\beta \in [0, 1]" inline /> denotes the human authority weight. The details of fusing arm and hand commands are shown in the method illustration. Our method supports two primary intervention modes:
+
+
+• Full Takeover: <LaTeX formula="\alpha \approx 0, \beta = 1" inline />. The robot is primarily controlled by the human, which is crucial for recovering from severe OOD states.
+
+• Copilot Shared Control: The operator injects minimal corrective signals while preserving the base policy's intent. The system allows decoupled authority weights for the arms (<LaTeX formula="\beta_a" inline />) and hands (<LaTeX formula="\beta_h = 1 - \alpha_h" inline />).
 
 </div>
 
-### Training Recipe
+<Figure>
+  <Image slot="figure" source={method} altText="hand" class="w-[95%]" />
+  <span slot="caption">The ByteDexter V2 hand with tactile fingertips.</span>
+</Figure>
+
+
+### Optimization-Based Relative Hand Retargeting
 <div class="text-justify">
-We employ a co-training strategy for GR-Dexter using a mixture of three distinct data sources: web-scale vision-language data, cross-embodiment real-robot data, and human trajectory data. To handle the structural differences across datasets, we mask out unavailable or unreliable action dimensions (e.g., specific joints not present in the target embodiment). 
+Traditional absolute retargeting maps human poses directly to the robot, causing sudden ``gesture jumps'' during interventions that destabilize contact-rich grasps. To eliminate this, we propose an optimization-based relative retargeting algorithm. At each control step <LaTeX formula="t" inline />, we solve for a target hand configuration <LaTeX formula="q_t" inline /> that tracks the human's relative 、keyvectors while enforcing safety constraints. To ensure robustness against tracking outliers, we employ the Huber loss <LaTeX formula="\mathcal{H}_\delta(\cdot)" inline />. The optimization objective <LaTeX formula="\mathcal{J}(q_t)" inline /> is formulated as:
+
+<LaTeX formula="\begin{aligned} \min_{q_t} \mathcal{J}(q_t) = & \underbrace{\sum_{i=1}^{5} \mathcal{H}_\delta \Big( \beta_i(d_i) \big( \Delta \mathbf{v}_{i}^{\text{rob}}(q_t) - \Delta \hat{\mathbf{v}}_{i}^{\text{hum}} \big) \Big)}_{\mathcal{L}_{\text{shape}} \text{ (Global Shaping)}} + \underbrace{\sum_{j \in \mathcal{F}_{\text{opp}}} \mathcal{H}_\delta \Big( \omega_j(d_j) \big( \mathbf{u}_{j}^{\text{rob}}(q_t) - \alpha_j(d_j) \hat{\mathbf{u}}_{j}^{\text{tgt}} \big) \Big)}_{\mathcal{L}_{\text{grasp}} \text{ (Precision Grasping)}} \\ & + \underbrace{\sum_{(m,n) \in \mathcal{C}} \gamma \max \left(0, \frac{d_{\text{safe}}}{D_{mn}(q_t)} - 1 \right)}_{\mathcal{L}_{\text{safe}} \text{ (Structural Safety)}} + \underbrace{\mathcal{H}_\delta \Big( \lambda_{\text{reg}} (q_t - q_{t-1}) \Big)}_{\mathcal{L}_{\text{reg}} \text{ (Temporal Regularization)}}, \end{aligned}" />
+
+where superscripts <LaTeX formula="\text{rob}" inline /> and <LaTeX formula="\text{hum}" inline /> denote robot and human states, and <LaTeX formula="\Delta (\cdot) = (\cdot)_t - (\cdot)_{t_0}" inline /> represents the relative motion since the intervention timestamp <LaTeX formula="t_0" inline />. The loss components are defined as follows:
+
+• <strong>Global Shaping (<LaTeX formula="\mathcal{L}_{\text{shape}}" inline />):</strong> Prioritizes overall posture via wrist-to-fingertip keyvectors <LaTeX formula="\mathbf{v}_i" inline />. Here, <LaTeX formula="\Delta \mathbf{v}_{i}^{\text{rob}}(q_t)" inline /> and <LaTeX formula="\Delta \hat{\mathbf{v}}_{i}^{\text{hum}}" inline /> are the relative changes of these vectors on the robot and human hands. The adaptive weight <LaTeX formula="\beta_i(d_i)" inline /> decays via a sigmoid as the absolute human thumb-to-finger distance <LaTeX formula="d_i" inline /> decreases, dominating when the hand is open.
+
+• <strong>Precision Grasping (<LaTeX formula="\mathcal{L}_{\text{grasp}}" inline />):</strong> Captures pinch grasping via thumb-to-fingertip keyvectors <LaTeX formula="\mathbf{u}_j" inline />. The robot's absolute keyvector <LaTeX formula="\mathbf{u}_{j}^{\text{rob}}(q_t)" inline /> tracks the nominal target <LaTeX formula="\hat{\mathbf{u}}_{j}^{\text{tgt}} = \mathbf{u}_{j}^{\text{rob}}(t_0) + \Delta \hat{\mathbf{u}}_{j}^{\text{hum}}" inline />. We introduce a pinch activation factor <LaTeX formula="\alpha_j(d_j) \in [0,1]" inline />. When <LaTeX formula="d_j" inline /> falls below a threshold, <LaTeX formula="\alpha_j(d_j) \to 0" inline /> explicitly drives <LaTeX formula="\mathbf{u}_{j}^{\text{rob}}" inline /> to <LaTeX formula="\mathbf{0}" inline /> (i.e., firm contact). Concurrently, the weight <LaTeX formula="\omega_j(d_j) \propto (1 - \alpha_j)" inline /> sharply increases, ensuring this term dominates during closed grasps.
+
+• <strong>Structural Safety (<LaTeX formula="\mathcal{L}_{\text{safe}}" inline />):</strong> A repulsive barrier preventing self-collisions. <LaTeX formula="D_{mn}(q_t)" inline /> is the absolute physical distance between adjacent PIP/DIP joint pairs <LaTeX formula="(m,n) \in \mathcal{C}" inline />. The penalty <LaTeX formula="\gamma" inline /> activates only when <LaTeX formula="D_{mn}" inline /> falls below the safety margin <LaTeX formula="d_{\text{safe}}" inline />.
+
+• <strong>Temporal Regularization (<LaTeX formula="\mathcal{L}_{\text{reg}}" inline />):</strong> Penalizes the joint displacement <LaTeX formula="(q_t - q_{t-1})" inline />, scaled by <LaTeX formula="\lambda_{\text{reg}}" inline />, to prevent high-frequency jitter.
+
 </div>
 
-<TwoColumns>
-  <div class="text-justify" slot="left">
-  • Vision-language data: We reuse the vision-language data from GR-3, which covers a spectrum of tasks including image captioning, visual question answering, image grounding, and grounded image captioning. 
-  
-  • Cross-embodiment data: We leverage existing open-source bi-manual humanoid datasets. Specifically, we select three dual-arm dexterous manipulation datasets that encompass diverse embodiments and task settings: Fourier ActionNet Dataset, OpenLoong Baihu Dataset, and RoboMIND. 
-  
-  •  Human trajectories: While cross-embodiment data offers accurate robot information, the scale and diversity of tasks are inevitably limited by costs. Crowdsourcing human demonstrations via easily accessible VR devices offers a promising solution to scale up data quantity and diversity. We adopt open-source dataset and supplement it with data collected using Pico VR devices. 
-  </div>
-  <Figure slot="right">
-    <Image slot="figure" source={data_pyramid} altText="data_pyramid" width="500" />
-    <span slot="caption">Data Pyramid of GR-Dexter.</span>
-  </Figure>
-</TwoColumns>
-
-### Cross-Embodiment Motion Retargeting and Transferring
-<div class="text-justify">
-• Transferring cross-embodiment trajectories: We first standardize camera observations across datasets. We then perform careful retargeting to ByteDexter V2 hand by aligning the fingertips. This fingertip-centric alignment preserves task-relevant contact geometry while remaining agnostic to joint-level discrepancies. The resulting trajectories are then resampled by task category to produce a balanced cross-embodiment training corpus.
-</div>
+### Velocity-Based Shard Arm Control
 
 <div class="text-justify">
-• Transferring human trajectories: The gap between human and robotic hands is substantial: VR data collection introduces ego-motion due to head-mounted cameras, and single-frame hand pose estimation commonly leads to temporal jitter and inconsistency. We first perform careful filtering based on hand visibility and velocity. Next, human trajectories are mapped into the same visual and kinematic representation as robot data similar to the cross-embodiment data cleaning process.
+Since VR controllers are rigidly mounted on the gloves, operators lack access to physical joysticks. To enable intuitive corrections, we design a velocity-based shared-control interface. Human wrist motions are translated into residual twists, smoothed via Exponential Moving Average (EMA), and injected into the policy trunk without persistent drift.
+
+At step <LaTeX formula="t" inline />, the VLA outputs the target pose and feedforward twist <LaTeX formula="(\mathbf{p}_t^{\pi}, \mathbf{R}_t^{\pi}, \dot{\mathbf{p}}_t^{\pi}, \boldsymbol{\omega}_t^{\pi})" inline />. Simultaneously, the residual human twist <LaTeX formula="(\dot{\mathbf{p}}_t^{h}, \boldsymbol{\omega}_t^{h})" inline /> is estimated over a window of <LaTeX formula="k=2" inline /> VR ticks (<LaTeX formula="\Delta T = 0.04\,\mathrm{s}" inline />) to balance stability and latency:
+
+<LaTeX formula="\begin{aligned} \dot{\mathbf{p}}_{t}^{h} &= \text{EMA}\left(\frac{\mathbf{p}_t^{vr} - \mathbf{p}_{t-k}^{vr}}{\Delta T}\right), \quad  \boldsymbol{\omega}_{t}^{h} = \text{EMA}\left(\frac{\log\left((\mathbf{R}_{t-k}^{vr})^{-1}\mathbf{R}_t^{vr}\right)}{\Delta T}\right). \end{aligned}" />
+
+These twists are integrated into incremental pose offsets <LaTeX formula="(\Delta \mathbf{p}_t^{h}, \Delta \mathbf{R}_t^{h})" inline /> to compute the final corrective target pose:
+
+<LaTeX formula="\mathbf{p}_t^{\text{tgt}} = \mathbf{p}_t^{\pi} + \Delta \mathbf{p}_t^{h}, \quad \mathbf{R}_t^{\text{tgt}} = \mathbf{R}_t^{\pi} \Delta \mathbf{R}_t^{h}" />
+
+A task-space PD tracker, augmented with policy feedforward terms, then computes the commanded spatial velocity.
+
+Crucially, deriving residuals from relative motion ensures that when the operator is still, <LaTeX formula="(\dot{\mathbf{p}}_t^{h}, \boldsymbol{\omega}_t^{h}) \rightarrow \mathbf{0}" inline />. The EMA filter smoothly decays these residuals, eliminating persistent offsets without requiring the operator to manually return to a neutral ``center'' position.
+
 </div>
 
 </HighlightedSection>
+
 <HighlightedSectionResult>
+
+
 ## Experiments
 
 <div class="text-justify">
-We conduct extensive real-world experiments to evaluate the performance of GR-Dexter on long-horizon bimanual manipulation and generalizable pick-and-place tasks. We evaluate GR-Dexter in: (1) challenging dexterous tool use tasks, (2) long-horizon task execution, and (3) OOD scenarios with novel relative spatial configurations, unseen objects, and unseen instructions.
+Our experiments consist of three parts: (1) takeover command discontinuity analysis, which measures the abrupt change in dexterous hand commands at the handover moment; (2) post-takeover manipulation evaluation, which tests whether each method preserves sufficient dexterous manipulation capability after takeover; and (3) long-horizon policy evaluation, which examines whether the collected human-correction data improves the performance of a VLA policy on challenging bimanual dexterous manipulation tasks.
 </div>
 
 ### Long-Horizon Manipulation Tasks
 <div class="text-justify">
-**Basic Settings**: the relative spatial configurations (layouts) of objects are present in the training data. Here, plain-VLA has a comparable performance with GR-Dexter, achieving 0.96 and 0.97 success rates correspondingly. This shows that co-training preserves the strong in-domain capability of the teleop-only baseline
+We evaluate takeover command discontinuity on the Drill and Bread Clip tasks.
+
+<Figure slot="right">
+  <Image slot="figure" source={jitter} altText="data_pyramid" />
+  <span slot="caption">Data Pyramid of GR-Dexter.</span>
+</Figure>
+
+Across 30 attempts per task-method pair, direct teleoperation switching exhibited a high failure rate, frequently dropping the tool or releasing the drill trigger due to abrupt gesture jumps. In contrast, our relative retargeting method seamlessly preserved grasp stability.
+
+Our method drastically reduces quantitative command mutation at intervention. On the Bread Clip task, which requires an open hand posture that maximizes human-robot state mismatch, direct switching introduces massive command spikes (mean <LaTeX formula="\approx 4.38 \times 10^{-2}" inline />). Our method suppresses this to <LaTeX formula="\approx 6.8 \times 10^{-5}" inline />, reducing the discontinuity by <strong>99.8%</strong> and outperforming the DeltaCmd baseline (<LaTeX formula="\approx 6.23 \times 10^{-3}" inline />) by nearly two orders of magnitude. Conversely, the Drill task involves a closed power grasp, naturally restricting the maximum pose mismatch and yielding numerically smaller jumps for direct switching (<LaTeX formula="\approx 2.75 \times 10^{-2}" inline />). However, even this seemingly minor mutation is catastrophic, instantly causing the index finger to slip off the trigger. Our method resolves this by achieving a near-zero mean command change (<LaTeX formula="\approx 2.65 \times 10^{-4}" inline />), comparable to the Jacobian baseline but without its inherent singularity issues, ensuring stable trigger actuation and functional tool use.
 </div>
 
+### Post-Takeover Manipulation Capability
 <div class="text-justify">
-**Our-of-Distribution Settings**: the relative spatial configurations of objects are novel at test time. We evaluate on five unseen layouts while keeping the instruction order the same as Basic. In OOD settings, the performance of the plain-VLA drops to 0.64, whereas GR-Dexter improves substantially to 0.89. These results indicate that co-training with vision-language data significantly enhances generalization to unseen spatial layouts, while maintaining in-domain performance.
 </div>
-
+<div class="text-justify">
+We evaluate pure manipulation capability during takeover on the Pick Up and Place the Parts and Pick Up the Drill task. Operators initiated both tasks directly in an active takeover state. If an operator reached their physical workspace limit, they could temporarily disengage, reset their hand posture, and re-engage (recorded as Interventions). 
 <Figure>
-  <Image slot="figure" source={makeup_result} altText="makeup_result" class="w-full" />
+  <Image slot="figure" source={table} altText="makeup_result" class="w-full" />
+  <span slot="caption">Experiment Settings and Results of Makeup Decluttering.</span>
+</Figure>
+<Figure>
+  <Image slot="figure" source={failure_mode} altText="makeup_result" class="w-full" />
   <span slot="caption">Experiment Settings and Results of Makeup Decluttering.</span>
 </Figure>
 
-<div class="text-justify">
-**Additional Qualitative Results**: we further consider two more complex long-horizon tasks: 1\) Vacuuming: the robot learns a stable four-finger grasp to hold the tabletop vacuum while using the thumb to press the power button (on/off). Next, it presses again to increase power, then sweeps to clear confetti. 2\) Bread serving: the robot learns to stably grasp food tongs to retrieve a croissant from a pastry container while the other hand holds a plate. It then releases the tongs and places the croissant onto the plate. We observe GR-Dexter performs both tasks reliably across time. 
+As shown in the table, on the Pick Up and Place the Parts task, our method achieves the fastest mean time (<LaTeX formula="42.8\,\mathrm{s}" inline />), improving by <LaTeX formula="19.1\%" inline />, and reduces grasp failures (retries) by <LaTeX formula="87.5\%" inline /> compared to Teleop. Furthermore, our method exhibits minimal cross-operator variance (a <LaTeX formula="5.6\,\mathrm{s}" inline /> gap vs. <LaTeX formula="18.0\,\mathrm{s}" inline /> for Teleop), proving its high intuitiveness. As illustrated in the failure analysis, this performance gap stems from the underlying kinematics. Both our Relative method and Teleop utilize optimization algorithms, ensuring accurate thumb-to-finger opposition and collision avoidance. Conversely, the Jacobian and Delta Cmd baselines rely on previous-step differential calculations. They struggle with precise pinching and easily accumulate drift during fast motions, resulting in awkward grasping postures, frequent part drops, and significantly longer completion times (<LaTeX formula="68.0\,\mathrm{s}" inline /> and <LaTeX formula="56.7\,\mathrm{s}" inline />, respectively).
+On the Pick Up the Drill task, our method again demonstrates better overall efficiency. It records the lowest mean completion time (<LaTeX formula="14.4\,\mathrm{s}" inline />), the fewest workspace interventions (<LaTeX formula="11/10" inline />), and maintains better cross-operator time consistency (<LaTeX formula="11.0\,\mathrm{s}" inline /> / <LaTeX formula="17.9\,\mathrm{s}" inline />) compared to the differential baselines. Because our relative retargeting employs a different optimization formulation than the teleoperation, the mapping of fine finger articulation differs slightly. Consequently, without tactile feedback, operators require a brief period of adaptation and postural adjustment to command, which slightly affect the success rate of triggering the button.
 </div>
 
+### Long-Horizon Policy Evaluation
+<div class="text-justify">
+</div>
 <Figure>
-  <Image slot="figure" source={long_horizon} altText="long_horizon" class="w-full" />
+  <Image slot="figure" source={experiment} altText="makeup_result" class="w-full" />
+  <span slot="caption">Experiment Settings and Results of Makeup Decluttering.</span>
+</Figure>
+<div class="text-justify">
+We collect a 20-hour real-world teleoperation dataset, evenly distributed across three long-horizon tasks. 
+Starting from a pre-trained GR-Dexter policy, we further fine-tune the model on this teleoperation dataset to obtain our base policy.
+We then deploy the base policy on real robots and collect takeover data during rollouts whenever the operator judges intervention to be necessary. 
+We collect correction data under both full-takeover and copilot shared-control modes in an HG-DAgger-style takeover process. 
+For post-training, we compare the following policies:
+
+• **Base**: the policy fine-tuned only on the 20-hour teleoperation dataset (base dataset);
+
+• **Teleop\_old**: continuing to fine-tune the base policy using the base dataset only;
+
+• **Teleop\_new**: fine-tuning the base policy using a 0.5:1 mixture of 1-hour new teleoperation data and base dataset;
+
+• **Copilot**: fine-tuning the base policy using a 0.5:1 mixture of copilot takeover data and base dataset;
+
+• **Full Takeover**: fine-tuning the base policy using a 0.5:1 mixture of full-takeover data and base dataset.
+
+For a fair comparison, all additional post-training datasets, including new teleoperation, copilot takeover, and full-takeover data, are 1 hour in duration, and all post-training runs use identical training schedules and hyperparameters.
+
+We evaluate all policies on three long-horizon tasks requiring high-precision bimanual coordination. Each task is decomposed into several semantic sub-stages. We report the average Sub-goal Completion Score over 10 evaluation rollouts for each model.
+
+<Figure>
+  <Image slot="figure" source={evaluation} altText="long_horizon" class="w-full" />
   <span slot="caption">GR-Dexter performs long-horizon tasks.</span>
 </Figure>
 
+As shown in Fig., comparing the five policies reveals three critical insights regarding long-horizon performance:
+
+**1) Limited Improvements from Pure Teleoperation**: 
+As shown in Fig., simply increasing pure teleoperation data brings limited and inconsistent gains. Both Teleop_old and Teleop_new show only marginal improvements, and their effects vary across tasks. This suggests that additional off-policy demonstrations do not sufficiently address the rollout states where compounding errors occur, especially in late phases that require precise contact-rich manipulation.
+
+**2) Effectiveness of Intervention Data**: 
+In contrast, policies fine-tuned with intervention data achieve higher average normalized completion scores. Since Copilot and Full Takeover data are collected when the deployed policy actually requires human correction, they provide targeted supervision for recovering from out-of-distribution states. This makes intervention data more effective than standard teleoperation demonstrations for improving long-horizon robustness.
+
+**3) Copilot vs. Full Takeover**: 
+Among the two intervention strategies, Copilot generally yields the strongest overall performance. Unlike Full Takeover, which may introduce larger action deviations during authority switching, Copilot preserves the base policy's ongoing behavior while injecting local corrections. The resulting data stays closer to the policy's rollout distribution, leading to more stable downstream improvements.
+</div>
 </HighlightedSectionResult>
-<HighlightedSection>
-
-### Generalizable Pick-and-Place
-<div class="text-justify">
-</div>
-<div class="text-justify">
-**Basic Settings**: we observe that in the in-domain Basic setting, plain VLA reaches 0.87, GR-Dexter (w/o cross-embodiment data) reaches 0.85, and GR-Dexter achieves the best performance at 0.93. We find the results interesting because: 1\) GR-Dexter w/o cross-embodiment data performs slightly worse than plain VLA, as in the in-distribution setting, VL data gives no additional information but makes optimization more challenging; 2\) with cross-embodiment data, GR-Dexter significantly outperforms the two baselines, which suggests after careful data processing and alignment, larger scale cross-embodiment training for the action expert can improve the overall robustness and performance of GR-Dexter.
-</div>
-
-<div class="text-justify">
-**Unseen Objects and Instructions**: we observe that 1\) the performance of plain VLA drops significantly; 2\) VLM co-training largely improves the robustness and generalization of GR-Dexter, but empirically, GR-Dexter w/o cross-embodiment data still suffer from inaccurate grasping; 3\) with carefully filtered and aligned cross-embodiment co-training, GR-Dexter demonstrates strong generalization capabilities to both unseen objects and instructions, achieving a final success rate of 0.85 and 0.83 respectively.
-</div>
-
-<Figure>
-  <Image slot="figure" source={ppa_results} altText="ppa_results" class="w-full" />
-  <span slot="caption">Experiment settings and Results of Generalizable Pick-and-Place.</span>
-</Figure>
-
-<div class="text-justify">
-These gains are consistent with the qualitative examples in the following figure, where GR-Dexter successfully grasps unseen objects by leveraging skills learned from cross-embodiment data, and correctly interprets and executes previously unseen instructions. 
-</div>
-
-<Figure>
-  <Image slot="figure" source={cross_embodied} altText="cross_embodied" class="w-full" />
-  <span slot="caption">GR-Dexter is capable of grasping unseen objects.</span>
-</Figure>
-
-<Figure>
-  <Image slot="figure" source={unseen_ins} altText="unseen_ins" class="w-full" />
-  <span slot="caption">GR-Dexter follows unseen instructions.</span>
-</Figure>
-
-</HighlightedSection>
-
-## Citation
-<div class="text-sm mt-6 md:max-w-3xl mx-auto w-full" style="font-family: 'EB Garamond', sans-serif; color: #333; line-height: 1.; padding: 10px; background-color: #fffff; margin-bottom: 20px;">
-```bibtex
-  @article{wen2025grdextertechnicalreport,
-    title={GR-Dexter Technical Report},
-    author={Wen, Ruoshi and Chen, Guangzeng and Cui, Zhongren and Du, Min and Gou, Yang and Han, Zhigang and Huang, Liqun and Lei, Mingyu and Li, Yunfei and Li, Zhuohang and Liu, Wenlei and Liu, Yuxiao and Ma, Xiao and Niu, Hao and Ouyang, Yutao and Ren, Zeyu and Shi, Haixin and Xu, Wei and Zhang, Haoxiang and Zhang, Jiajun and Zhang, Xiao and Zheng, Liwei and Zhong, Weiheng and Zhou, Yifei and Zhu, Zhengming and Li, Hang},
-    journal={arXiv preprint arXiv:2512.24210},
-    year={2025}
-  }
-```
-</div>
