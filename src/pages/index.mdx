@@ -110,16 +110,16 @@ Vision-Language-Action (VLA) models suffers from the accumulation of compounding
 <HighlightedSection>
 ## Method
 
-### Intervention Modes
+### Seamless Human Intervention
 
 <div class="text-justify">
-During standard autonomous execution, the robot executes the first action of the predicted sequence <LaTeX formula="\mathbf{A}_t^{\pi}" inline />. In our human-in-the-loop setting, the operator can inject a corrective action <LaTeX formula="\mathbf{a}_{t}^{h}" inline /> during the rollout. The final executed command <LaTeX formula="\mathbf{a}_{t}^{exec}" inline /> is a blended output:<LaTeX formula="\mathbf{a}_{t}^{exec} = \alpha \mathbf{a}_{t}^{\pi} + \beta \mathbf{a}_{t}^{h}" inline />, where <LaTeX formula="\alpha \in [0, 1]" inline /> denotes the policy weight and <LaTeX formula="\beta \in [0, 1]" inline /> denotes the human authority weight. The details of fusing arm and hand commands are shown in the method illustration. Our method supports two primary intervention modes:
+HandITL enables operators to correct a running VLA policy without fully interrupting autonomous execution. 
+At each control step, the executed command is obtained by blending the policy action with the human corrective action:
 
+<LaTeX formula="\mathbf{a}_{t}^{exec} = \alpha \mathbf{a}_{t}^{\pi} + \beta \mathbf{a}_{t}^{h}" inline />
 
-• Full Takeover: <LaTeX formula="\alpha \approx 0, \beta = 1" inline />. The robot is primarily controlled by the human, which is crucial for recovering from severe OOD states.
-
-• Copilot Shared Control: The operator injects minimal corrective signals while preserving the base policy's intent. The system allows decoupled authority weights for the arms <LaTeX formula="\beta_a" inline /> and hands <LaTeX formula="\beta_h = 1 - \alpha_h" inline />.
-
+where <LaTeX formula="\alpha" inline /> and <LaTeX formula="\beta" inline /> control the relative authority of the policy and the human operator. 
+This formulation supports both <strong>full takeover</strong>, where the human directly recovers the robot from severe failure states, and <strong>copilot shared control</strong>, where the human provides lightweight corrections while preserving the policy's ongoing intent.
 </div>
 
 <Figure>
@@ -129,39 +129,25 @@ During standard autonomous execution, the robot executes the first action of the
 
 
 ### Optimization-Based Relative Hand Retargeting
+
 <div class="text-justify">
-Traditional absolute retargeting maps human poses directly to the robot, causing sudden ``gesture jumps'' during interventions that destabilize contact-rich grasps. To eliminate this, we propose an optimization-based relative retargeting algorithm. At each control step <LaTeX formula="t" inline />, we solve for a target hand configuration <LaTeX formula="q_t" inline /> that tracks the human's relative 、keyvectors while enforcing safety constraints. To ensure robustness against tracking outliers, we employ the Huber loss <LaTeX formula="\mathcal{H}_\delta(\cdot)" inline />. The optimization objective <LaTeX formula="\mathcal{J}(q_t)" inline /> is formulated as:
+A key challenge in dexterous intervention is that the human hand pose and robot hand pose are usually not aligned at the takeover moment. 
+Directly mapping the human pose to the robot can therefore cause sudden command jumps and break stable grasps.
 
-<LaTeX formula="\begin{aligned} \min_{q_t} \mathcal{J}(q_t) = & \underbrace{\sum_{i=1}^{5} \mathcal{H}_\delta \Big( \beta_i(d_i) \big( \Delta \mathbf{v}_{i}^{\text{rob}}(q_t) - \Delta \hat{\mathbf{v}}_{i}^{\text{hum}} \big) \Big)}_{\mathcal{L}_{\text{shape}} \text{ (Global Shaping)}} + \underbrace{\sum_{j \in \mathcal{F}_{\text{opp}}} \mathcal{H}_\delta \Big( \omega_j(d_j) \big( \mathbf{u}_{j}^{\text{rob}}(q_t) - \alpha_j(d_j) \hat{\mathbf{u}}_{j}^{\text{tgt}} \big) \Big)}_{\mathcal{L}_{\text{grasp}} \text{ (Precision Grasping)}} \\ & + \underbrace{\sum_{(m,n) \in \mathcal{C}} \gamma \max \left(0, \frac{d_{\text{safe}}}{D_{mn}(q_t)} - 1 \right)}_{\mathcal{L}_{\text{safe}} \text{ (Structural Safety)}} + \underbrace{\mathcal{H}_\delta \Big( \lambda_{\text{reg}} (q_t - q_{t-1}) \Big)}_{\mathcal{L}_{\text{reg}} \text{ (Temporal Regularization)}}, \end{aligned}" />
+To address this, HandITL tracks <strong>relative fingertip motion</strong> instead of absolute hand pose. 
+Starting from the intervention timestamp, the robot hand follows the change of human wrist-to-fingertip keyvectors, while preserving its own initial grasp configuration. 
+This allows the operator to naturally express corrective finger motions without forcing the robot hand to first match the human hand posture.
 
-where superscripts <LaTeX formula="\text{rob}" inline /> and <LaTeX formula="\text{hum}" inline /> denote robot and human states, and <LaTeX formula="\Delta (\cdot) = (\cdot)_t - (\cdot)_{t_0}" inline /> represents the relative motion since the intervention timestamp <LaTeX formula="t_0" inline />. The loss components are defined as follows:
-
-<ul class="w-full max-w-none self-stretch list-outside list-disc pl-8 space-y-2 text-left">
-  <li><strong>Global Shaping (<LaTeX formula="\mathcal{L}_{\text{shape}}" inline />):</strong> Prioritizes overall posture via wrist-to-fingertip keyvectors <LaTeX formula="\mathbf{v}_i" inline />. Here, <LaTeX formula="\Delta \mathbf{v}_{i}^{\text{rob}}(q_t)" inline /> and <LaTeX formula="\Delta \hat{\mathbf{v}}_{i}^{\text{hum}}" inline /> are the relative changes of these vectors on the robot and human hands. The adaptive weight <LaTeX formula="\beta_i(d_i)" inline /> decays via a sigmoid as the absolute human thumb-to-finger distance <LaTeX formula="d_i" inline /> decreases, dominating when the hand is open.</li>
-  <li><strong>Precision Grasping (<LaTeX formula="\mathcal{L}_{\text{grasp}}" inline />):</strong> Captures pinch grasping via thumb-to-fingertip keyvectors <LaTeX formula="\mathbf{u}_j" inline />. The robot's absolute keyvector <LaTeX formula="\mathbf{u}_{j}^{\text{rob}}(q_t)" inline /> tracks the nominal target <LaTeX formula="\hat{\mathbf{u}}_{j}^{\text{tgt}} = \mathbf{u}_{j}^{\text{rob}}(t_0) + \Delta \hat{\mathbf{u}}_{j}^{\text{hum}}" inline />. We introduce a pinch activation factor <LaTeX formula="\alpha_j(d_j) \in [0,1]" inline />. When <LaTeX formula="d_j" inline /> falls below a threshold, <LaTeX formula="\alpha_j(d_j) \to 0" inline /> explicitly drives <LaTeX formula="\mathbf{u}_{j}^{\text{rob}}" inline /> to <LaTeX formula="\mathbf{0}" inline /> (i.e., firm contact). Concurrently, the weight <LaTeX formula="\omega_j(d_j) \propto (1 - \alpha_j)" inline /> sharply increases, ensuring this term dominates during closed grasps.</li>
-  <li><strong>Structural Safety (<LaTeX formula="\mathcal{L}_{\text{safe}}" inline />):</strong> A repulsive barrier preventing self-collisions. <LaTeX formula="D_{mn}(q_t)" inline /> is the absolute physical distance between adjacent PIP/DIP joint pairs <LaTeX formula="(m,n) \in \mathcal{C}" inline />. The penalty <LaTeX formula="\gamma" inline /> activates only when <LaTeX formula="D_{mn}" inline /> falls below the safety margin <LaTeX formula="d_{\text{safe}}" inline />.</li>
-  <li><strong>Temporal Regularization (<LaTeX formula="\mathcal{L}_{\text{reg}}" inline />):</strong> Penalizes the joint displacement <LaTeX formula="(q_t - q_{t-1})" inline />, scaled by <LaTeX formula="\lambda_{\text{reg}}" inline />, to prevent high-frequency jitter.</li>
-</ul>
-
+The retargeting objective combines four terms: global hand-shape tracking, precision grasping, structural safety, and temporal regularization. 
+Together, these terms enable smooth, safe, and contact-preserving dexterous correction during intervention.
 </div>
 
-### Velocity-Based Shard Arm Control
+### Velocity-Based Shared Arm Control
 
 <div class="text-justify">
-Since VR controllers are rigidly mounted on the gloves, operators lack access to physical joysticks. To enable intuitive corrections, we design a velocity-based shared-control interface. Human wrist motions are translated into residual twists, smoothed via Exponential Moving Average (EMA), and injected into the policy trunk without persistent drift.
-
-At step <LaTeX formula="t" inline />, the VLA outputs the target pose and feedforward twist <LaTeX formula="(\mathbf{p}_t^{\pi}, \mathbf{R}_t^{\pi}, \dot{\mathbf{p}}_t^{\pi}, \boldsymbol{\omega}_t^{\pi})" inline />. Simultaneously, the residual human twist <LaTeX formula="(\dot{\mathbf{p}}_t^{h}, \boldsymbol{\omega}_t^{h})" inline /> is estimated over a window of <LaTeX formula="k=2" inline /> VR ticks (<LaTeX formula="\Delta T = 0.04\,\mathrm{s}" inline />) to balance stability and latency:
-
-<LaTeX formula="\begin{aligned} \dot{\mathbf{p}}_{t}^{h} &= \text{EMA}\left(\frac{\mathbf{p}_t^{vr} - \mathbf{p}_{t-k}^{vr}}{\Delta T}\right), \quad  \boldsymbol{\omega}_{t}^{h} = \text{EMA}\left(\frac{\log\left((\mathbf{R}_{t-k}^{vr})^{-1}\mathbf{R}_t^{vr}\right)}{\Delta T}\right). \end{aligned}" />
-
-These twists are integrated into incremental pose offsets <LaTeX formula="(\Delta \mathbf{p}_t^{h}, \Delta \mathbf{R}_t^{h})" inline /> to compute the final corrective target pose:
-
-<LaTeX formula="\mathbf{p}_t^{\text{tgt}} = \mathbf{p}_t^{\pi} + \Delta \mathbf{p}_t^{h}, \quad \mathbf{R}_t^{\text{tgt}} = \mathbf{R}_t^{\pi} \Delta \mathbf{R}_t^{h}" />
-
-A task-space PD tracker, augmented with policy feedforward terms, then computes the commanded spatial velocity.
-
-Crucially, deriving residuals from relative motion ensures that when the operator is still, <LaTeX formula="(\dot{\mathbf{p}}_t^{h}, \boldsymbol{\omega}_t^{h}) \rightarrow \mathbf{0}" inline />. The EMA filter smoothly decays these residuals, eliminating persistent offsets without requiring the operator to manually return to a neutral ``center'' position.
-
+For arm correction, HandITL converts VR controller motions into residual end-effector twists. 
+These residuals are smoothed with an exponential moving average and added to the policy-predicted arm motion. 
+Because the correction is velocity-based, the residual naturally decays to zero when the operator stops moving, avoiding persistent offsets and removing the need for a manually defined neutral position.
 </div>
 
 </HighlightedSection>
@@ -172,27 +158,36 @@ Crucially, deriving residuals from relative motion ensures that when the operato
 ## Experiments
 
 <div class="text-justify">
-Our experiments consist of three parts: (1) takeover command discontinuity analysis, which measures the abrupt change in dexterous hand commands at the handover moment; (2) post-takeover manipulation evaluation, which tests whether each method preserves sufficient dexterous manipulation capability after takeover; and (3) long-horizon policy evaluation, which examines whether the collected human-correction data improves the performance of a VLA policy on challenging bimanual dexterous manipulation tasks.
+We evaluate HandITL from three perspectives: intervention smoothness, post-takeover manipulation capability, and long-horizon policy improvement. 
+The experiments are conducted on real bimanual dexterous manipulation tasks involving tool use, fine-grained grasping, and multi-stage task execution.
 </div>
 
-### Takeover Command Discontinuity Analysis
+### Takeover Command Discontinuity
+
 <div class="text-justify">
-We evaluate takeover command discontinuity on the Drill and Bread Clip tasks.Operators first establish a stable teleoperation on the tool, switch to rollout mode, and then toggle the takeover mode three times per trial. 
+We first measure whether different intervention methods introduce abrupt hand-command changes at the takeover moment. 
+Direct teleoperation switching often causes large gesture jumps, leading to tool drops or unstable grasps. 
+In contrast, HandITL preserves the robot's current grasp and only applies relative corrective motion.
+
+
 
 <Figure slot="right">
   <Image slot="figure" source={jitter} altText="data_pyramid" class="w-[80%]" />
   <span slot="caption">Takeover command discontinuity on the Drill (top) and Bread Clip (bottom) tasks.</span>
 </Figure>
 
-Across 30 attempts per task-method pair, direct teleoperation switching exhibited a high failure rate, frequently dropping the tool or releasing the drill trigger due to abrupt gesture jumps. In contrast, our relative retargeting method seamlessly preserved grasp stability.
-
-Our method drastically reduces quantitative command mutation at intervention. On the Bread Clip task, which requires an open hand posture that maximizes human-robot state mismatch, direct switching introduces massive command spikes (mean <LaTeX formula="\approx 4.38 \times 10^{-2}" inline />). Our method suppresses this to <LaTeX formula="\approx 6.8 \times 10^{-5}" inline />, reducing the discontinuity by <strong>99.8%</strong> and outperforming the DeltaCmd baseline (<LaTeX formula="\approx 6.23 \times 10^{-3}" inline />) by nearly two orders of magnitude. Conversely, the Drill task involves a closed power grasp, naturally restricting the maximum pose mismatch and yielding numerically smaller jumps for direct switching (<LaTeX formula="\approx 2.75 \times 10^{-2}" inline />). However, even this seemingly minor mutation is catastrophic, instantly causing the index finger to slip off the trigger. Our method resolves this by achieving a near-zero mean command change (<LaTeX formula="\approx 2.65 \times 10^{-4}" inline />), comparable to the Jacobian baseline but without its inherent singularity issues, ensuring stable trigger actuation and functional tool use.
+On the Bread Clip task, HandITL reduces the mean command discontinuity from approximately 
+<LaTeX formula="4.38 \times 10^{-2}" inline /> to 
+<LaTeX formula="6.8 \times 10^{-5}" inline />, achieving a <strong>99.8%</strong> reduction. 
+On the Drill task, it similarly maintains stable trigger contact during intervention, avoiding failures caused by sudden finger-command changes.
 </div>
 
 ### Post-Takeover Manipulation Capability
 
 <div class="text-justify">
-We evaluate pure manipulation capability during takeover on the Pick Up and Place the Parts and Pick Up the Drill task. Operators initiated both tasks directly in an active takeover state. If an operator reached their physical workspace limit, they could temporarily disengage, reset their hand posture, and re-engage (recorded as Interventions). 
+We further test whether the robot can still perform precise manipulation after takeover. 
+Compared with direct teleoperation and differential baselines, HandITL achieves smoother finger control, fewer grasp failures, and better cross-operator consistency.
+
 
 <Figure>
   <Image slot="figure" source={table} altText="makeup_result" class="w-full" />
@@ -204,8 +199,11 @@ We evaluate pure manipulation capability during takeover on the Pick Up and Plac
   <span slot="caption">Grasping Postures and Failure Modes.</span>
 </Figure>
 
-As shown in the table, on the Pick Up and Place the Parts task, our method achieves the fastest mean time (<LaTeX formula="42.8\,\mathrm{s}" inline />), improving by <LaTeX formula="19.1\%" inline />, and reduces grasp failures (retries) by <LaTeX formula="87.5\%" inline /> compared to Teleop. Furthermore, our method exhibits minimal cross-operator variance (a <LaTeX formula="5.6\,\mathrm{s}" inline /> gap vs. <LaTeX formula="18.0\,\mathrm{s}" inline /> for Teleop), proving its high intuitiveness. As illustrated in the failure analysis, this performance gap stems from the underlying kinematics. Both our Relative method and Teleop utilize optimization algorithms, ensuring accurate thumb-to-finger opposition and collision avoidance. Conversely, the Jacobian and Delta Cmd baselines rely on previous-step differential calculations. They struggle with precise pinching and easily accumulate drift during fast motions, resulting in awkward grasping postures, frequent part drops, and significantly longer completion times (<LaTeX formula="68.0\,\mathrm{s}" inline /> and <LaTeX formula="56.7\,\mathrm{s}" inline />, respectively).
-On the Pick Up the Drill task, our method again demonstrates better overall efficiency. It records the lowest mean completion time (<LaTeX formula="14.4\,\mathrm{s}" inline />), the fewest workspace interventions (<LaTeX formula="11/10" inline />), and maintains better cross-operator time consistency (<LaTeX formula="11.0\,\mathrm{s}" inline /> / <LaTeX formula="17.9\,\mathrm{s}" inline />) compared to the differential baselines. Because our relative retargeting employs a different optimization formulation than the teleoperation, the mapping of fine finger articulation differs slightly. Consequently, without tactile feedback, operators require a brief period of adaptation and postural adjustment to command, which slightly affect the success rate of triggering the button.
+On the Pick Up and Place task, HandITL achieves the fastest mean completion time 
+(<LaTeX formula="42.8\,\mathrm{s}" inline />), improves efficiency by 
+<LaTeX formula="19.1\%" inline />, and reduces grasp failures by 
+<LaTeX formula="87.5\%" inline /> compared with teleoperation. 
+These results show that relative retargeting not only makes intervention smoother, but also preserves practical dexterous manipulation capability.
 </div>
 </HighlightedSectionResult>
 
@@ -220,23 +218,9 @@ On the Pick Up the Drill task, our method again demonstrates better overall effi
 </Figure>
 
 <div class="text-justify">
-We collect a 20-hour real-world teleoperation dataset, evenly distributed across three long-horizon tasks. 
-Starting from a pre-trained GR-Dexter policy, we further fine-tune the model on this teleoperation dataset to obtain our base policy.
-We then deploy the base policy on real robots and collect takeover data during rollouts whenever the operator judges intervention to be necessary. 
-We collect correction data under both full-takeover and copilot shared-control modes in an HG-DAgger-style takeover process. 
-For post-training, we compare the following policies:
-
-<ul class="w-full max-w-none self-stretch list-outside list-disc pl-8 space-y-2 text-left">
-  <li><strong>Base</strong>: the policy fine-tuned only on the 20-hour teleoperation dataset (base dataset);</li>
-  <li><strong>Teleop_old</strong>: continuing to fine-tune the base policy using the base dataset only;</li>
-  <li><strong>Teleop_new</strong>: fine-tuning the base policy using a 0.5:1 mixture of 1-hour new teleoperation data and base dataset;</li>
-  <li><strong>Copilot</strong>: fine-tuning the base policy using a 0.5:1 mixture of copilot takeover data and base dataset;</li>
-  <li><strong>Full Takeover</strong>: fine-tuning the base policy using a 0.5:1 mixture of full-takeover data and base dataset.</li>
-</ul>
-
-For a fair comparison, all additional post-training datasets, including new teleoperation, copilot takeover, and full-takeover data, are 1 hour in duration, and all post-training runs use identical training schedules and hyperparameters.
-
-We evaluate all policies on three long-horizon tasks requiring high-precision bimanual coordination. Each task is decomposed into several semantic sub-stages. We report the average Sub-goal Completion Score over 10 evaluation rollouts for each model.
+Finally, we study whether intervention data can improve downstream VLA policy performance. 
+Starting from a base policy fine-tuned on a 20-hour teleoperation dataset, we compare additional post-training with pure teleoperation data, full-takeover data, and copilot intervention data. 
+All additional post-training datasets are 1 hour in duration and use the same training schedule.
 
 <Figure>
   <Image slot="figure" source={evaluation} altText="long_horizon" class="w-full" />
